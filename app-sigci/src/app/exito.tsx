@@ -5,24 +5,14 @@ import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'r
 export default function ExitoScreen() {
   const router = useRouter();
   
-  // Captura los datos reales que le mandó la pantalla de ventas anterior
+  // 1. ATRAPAMOS LOS DATOS INCLUYENDO EL "codigo" QUE VIENE DE LA VENTA
   const params = useLocalSearchParams();
-  const { turno = 'Mañana', tipo = 'Adulto', cantidad = '1', total = '4.000' } = params;
+  const { turno = 'Mañana', tipo = 'Adulto', cantidad = '1', total = '5000', codigo = '---' } = params;
 
-  const [codigoBoleto, setCodigoBoleto] = useState('');
   const [fechaActual, setFechaActual] = useState('');
 
-  // Genera el código aleatorio y la fecha al cargar la pantalla
+  // 2. Solo generamos la fecha de hoy, porque el código ya viene listo
   useEffect(() => {
-    // Genera un código alfanumérico aleatorio de 8 caracteres en mayúsculas
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let codigo = '';
-    for (let i = 0; i < 8; i++) {
-      codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-    }
-    setCodigoBoleto(codigo);
-
-    // Obtiene la fecha de hoy formateada de forma limpia (DD/MM/AAAA)
     const hoy = new Date();
     const opciones: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
     setFechaActual(hoy.toLocaleDateString('es-CL', opciones));
@@ -44,9 +34,9 @@ export default function ExitoScreen() {
       {/* 2. TARJETA DE DETALLE DEL BOLETO */}
       <View style={styles.ticketCard}>
         
-        {/* Código del Boleto */}
+        {/* Código del Boleto (Ahora muestra el código real) */}
         <Text style={styles.codigoLabel}>CÓDIGO DE BOLETO</Text>
-        <Text style={styles.codigoNumero}>{codigoBoleto}</Text>
+        <Text style={styles.codigoNumero}>{codigo}</Text>
 
         <View style={styles.divisor} />
 
@@ -90,8 +80,11 @@ export default function ExitoScreen() {
         <Text style={styles.textoBoton}>NUEVA VENTA</Text>
       </TouchableOpacity>
     </SafeAreaView>
+    
   );
+  
 }
+
 
 const styles = StyleSheet.create({
   container: {

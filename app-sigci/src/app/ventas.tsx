@@ -42,17 +42,59 @@ export default function VentasScreen() {
     }
   };
 
-  const handleVender = () => {
-    // Viaja a la pantalla de éxito mandándole los datos seleccionados
-    router.replace({
-      pathname: '/exito',
-      params: { turno, tipo: tipoBolet, cantidad: cantidad.toString(), total: total.toString() }
-    });
+  // 🟢 CORRECCIÓN: Todo el proceso de venta ahora está dentro de su función
+  const handleVender = async () => {
+    // 1. Generador de código alfanumérico
+    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let codigoGenerado = '';
+    for (let i = 0; i < 8; i++) {
+      codigoGenerado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+    }
+
+    // 2. Variables ordenadas correctamente para MySQL
+    const ventaData = {
+      codigo_venta: codigoGenerado,
+      bus: 'BF-23',          
+      ruta: 'Ovalle - La Serena', 
+      turno: turno,      
+      boletos: cantidad,   // <-- Ahora envía la cantidad de pasajes (ej: 1)
+      ingresos: total,     // <-- Ahora envía el dinero total (ej: 5000)
+      estado: "Sincronizado"
+    };
+
+    try {
+      // 3. Envío al servidor Node.js
+      const respuesta = await fetch('http://192.168.1.25:3000/api/ventas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ventaData)
+      });
+      
+      // 4. Si la venta es exitosa, pasamos a la pantalla de Éxito
+// 4. Si la venta es exitosa, pasamos a la pantalla de Éxito convirtiendo los números a texto
+      if (respuesta.ok) {
+        router.push({
+          pathname: '/exito',
+          params: { 
+            codigo: codigoGenerado,
+            turno: turno,
+            tipo: tipoBolet,
+            cantidad: cantidad.toString(), // <-- Transformamos el número a texto
+            total: total.toString()        // <-- Transformamos el número a texto
+          } 
+        });
+      } else {
+        alert("Error al guardar la venta en la base de datos.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo conectar con el PC.");
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 🟢 NUEVO: MENÚ SUPERIOR QUE REDIRIGE AL RESUMEN INDEPENDIENTE */}
+      {/* MENÚ SUPERIOR QUE REDIRIGE AL RESUMEN INDEPENDIENTE */}
       <View style={styles.menuSuperior}>
         <TouchableOpacity style={styles.botonResumenMenu} onPress={() => router.push('/resumen')}>
           <Text style={styles.textoBotonResumenMenu}>📊 RESUMEN DEL DÍA</Text>
@@ -130,6 +172,7 @@ export default function VentasScreen() {
             <Text style={styles.totalNumero}>${total.toLocaleString('es-CL')}</Text>
           </View>
 
+          {/* Este botón ahora llama a la función corregida */}
           <TouchableOpacity style={styles.botonVender} onPress={handleVender}>
             <Text style={styles.textoBotonVender}>VENDER BOLETO</Text>
           </TouchableOpacity>
@@ -147,7 +190,6 @@ export default function VentasScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  // 🟢 ESTILOS NUEVOS PARA LA BARRA DEL BOTÓN RESUMEN
   menuSuperior: {
     backgroundColor: '#2D3748',
     paddingTop: Platform.OS === 'ios' ? 12 : 14,

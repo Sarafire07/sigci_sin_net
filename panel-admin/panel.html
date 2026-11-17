@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Administrativo - SIGCI</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div class="dashboard-container">
+    <!-- Menú Lateral -->
+    <aside class="sidebar">
+      <div class="logo">
+        <i class="fa-solid fa-bus"></i> BUSES CORTÉS FLORES
+      </div>
+      <ul class="menu">
+        <li id="btn-resumen" class="active"><i class="fa-solid fa-chart-pie"></i> Resumen</li>
+        <li id="btn-ventas"><i class="fa-solid fa-ticket"></i> Ventas</li>
+        <li id="btn-rutas"><i class="fa-solid fa-route"></i> Rutas</li>
+        <li id="btn-buses"><i class="fa-solid fa-van-shuttle"></i> Buses</li>
+        <li id="btn-conductores"><i class="fa-solid fa-users"></i> Personal</li>
+        <li id="btn-reportes"><i class="fa-solid fa-file-lines"></i> Reportes</li>
+        <li id="btn-alertas"><i class="fa-solid fa-bell"></i> Alertas</li>
+        <li id="btn-configuracion"><i class="fa-solid fa-gear"></i> Configuración</li>
+      </ul>
+    </aside>
+
+    <!-- Contenido Principal -->
+    <main class="main-content">
+      <header>
+        <h2 id="titulo-seccion">Resumen General</h2>
+        <div class="user-info">
+          <span>Hola, Administrador</span>
+          <i class="fa-solid fa-circle-user"></i>
+        </div>
+      </header>
+
+      <!-- 1. VISTA: RESUMEN (Lo que ya teníamos) -->
+      <div id="vista-resumen" class="vista">
+        <!-- Tarjetas de KPI -->
+        <section class="kpi-cards">
+          <div class="card">
+            <div class="card-info">
+              <p>Ingresos del día</p>
+              <h3 id="kpi-ingresos">0</h3>
+            </div>
+            <i class="fa-solid fa-money-bill-wave icon-green"></i>
+          </div>
+          <div class="card">
+            <div class="card-info">
+              <p>Boletos vendidos</p>
+              <h3 id="kpi-boletos">0</h3>
+            </div>
+            <i class="fa-solid fa-ticket icon-blue"></i>
+          </div>
+          <div class="card">
+            <div class="card-info">
+              <p>Promedio por boleto</p>
+              <h3 id="kpi-promedio">0</h3>
+            </div>
+            <i class="fa-solid fa-coins icon-yellow"></i>
+          </div>
+          <div class="card">
+            <div class="card-info">
+              <p>Diferencias / Alertas</p>
+              <h3 id="kpi-alertas">0</h3>
+            </div>
+            <i class="fa-solid fa-triangle-exclamation icon-red"></i>
+          </div>
+        </section>
+
+        <!-- Sección de Gráficos -->
+        <section class="charts-section">
+          <div class="chart-container">
+            <h4>Ingresos por día (últimos 7 días)</h4>
+            <canvas id="lineChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <h4>Ingresos por ruta (hoy)</h4>
+            <canvas id="doughnutChart"></canvas>
+          </div>
+        </section>
+
+        <!-- Sección de Tabla (¡Esta era la que faltaba!) -->
+        <section class="table-section">
+          <h4>Ventas por bus (hoy)</h4>
+          <table>
+            <thead style="background-color: #2D3748; color: white;">
+                <tr>
+                    <th style="padding: 10px;">Código</th> <!-- CAMBIAMOS ESTO -->
+                    <th style="padding: 10px;">Bus</th>
+                    <th style="padding: 10px;">Ruta</th>
+                    <th style="padding: 10px;">Turno</th>
+                    <th style="padding: 10px;">Boletos</th>
+                    <th style="padding: 10px;">Ingresos</th>
+                    <th style="padding: 10px;">Estado</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-ventas">
+              <!-- Se llena con JS -->
+            </tbody>
+          </table>
+        </section>
+      </div>
+      
+<!-- 2. VISTA: VENTAS -->
+      <div id="vista-ventas" class="vista" style="display: none;">
+        <h3>Módulo de Ventas</h3>
+        
+        <!-- Barra de Filtros -->
+        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+            <input type="text" id="filtro-bus" placeholder="Buscar Bus (Ej: BF-23)" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+            <select id="filtro-ruta" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+                <option value="">Todas las rutas</option>
+                <option value="La Serena - Ovalle">La Serena - Ovalle</option>
+                <option value="Ovalle - La Serena">Ovalle - La Serena</option>
+            </select>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; text-align: left; margin-top: 15px;" border="1">
+            <thead style="background-color: #2D3748; color: white;">
+                <tr>
+                    <th style="padding: 10px;">ID</th>
+                    <th style="padding: 10px;">Bus</th>
+                    <th style="padding: 10px;">Ruta</th>
+                    <th style="padding: 10px;">Turno</th>
+                    <th style="padding: 10px;">Boletos</th>
+                    <th style="padding: 10px;">Ingresos</th>
+                    <th style="padding: 10px;">Estado</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-tabla">
+                <tr><td colspan="7" style="text-align: center; padding: 10px;">Cargando datos...</td></tr>
+            </tbody>
+            <!-- Fila de Total de la Tabla -->
+            <tfoot style="background-color: #E2E8F0; font-weight: bold;">
+                <tr>
+                    <td colspan="5" style="padding: 10px; text-align: right;">TOTAL EN PANTALLA:</td>
+                    <td colspan="2" style="padding: 10px;" id="total-tabla-ventas">$0</td>
+                </tr>
+            </tfoot>
+        </table>
+      </div>
+
+     <!-- 3. VISTA: RUTAS -->
+      <div id="vista-rutas" class="vista" style="display: none;">
+        <h3>Módulo de Rutas</h3>
+        
+        <!-- Formulario -->
+        <div style="background: #F8FAFC; padding: 20px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 20px; max-width: 500px;">
+            <h4 style="margin-top: 0; color: #4A5568;">Agregar Nueva Ruta</h4>
+            <input type="text" id="nueva-ruta-nombre" placeholder="Nombre (Ej: Ovalle - La Serena)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <button onclick="guardarRuta()" style="width: 100%; padding: 10px; background: #fd7e00; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Guardar Ruta</button>
+        </div>
+
+        <!-- Tabla de Rutas -->
+        <table style="width: 100%; border-collapse: collapse; text-align: left;" border="1">
+            <thead style="background-color: #2D3748; color: white;">
+                <tr>
+                    <th style="padding: 10px;">ID</th>
+                    <th style="padding: 10px;">Nombre de la Ruta / Tramo</th>
+                    <th style="padding: 10px;">Estado</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-rutas-body">
+                <tr><td colspan="3" style="text-align: center; padding: 10px;">Cargando rutas...</td></tr>
+            </tbody>
+        </table>
+      </div>
+
+      <!-- 4. VISTA: BUSES -->
+      <div id="vista-buses" class="vista" style="display: none;">
+        <h3>Módulo de Buses</h3>
+        
+        <!-- Formulario -->
+        <div style="background: #F8FAFC; padding: 20px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 20px; max-width: 500px;">
+            <h4 style="margin-top: 0; color: #4A5568;">Agregar Nuevo Bus</h4>
+            <input type="text" id="nuevo-bus-numero" placeholder="Número (Ej: BF-23)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <input type="text" id="nuevo-bus-patente" placeholder="Patente (Opcional)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <button onclick="guardarBus()" style="width: 100%; padding: 10px; background: #2D3748; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Guardar Bus</button>
+        </div>
+
+        <!-- Tabla de Buses -->
+        <table style="width: 100%; border-collapse: collapse; text-align: left;" border="1">
+            <thead style="background-color: #2D3748; color: white;">
+                <tr>
+                    <th style="padding: 10px;">ID</th>
+                    <th style="padding: 10px;">Número</th>
+                    <th style="padding: 10px;">Patente</th>
+                    <th style="padding: 10px;">Estado</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-buses-body">
+                <tr><td colspan="4" style="text-align: center; padding: 10px;">Cargando buses...</td></tr>
+            </tbody>
+        </table>
+      </div>
+
+      <!-- 5. VISTA: PERSONAL -->
+      <div id="vista-personal" class="vista" style="display: none;">
+        <h3>Módulo de Personal</h3>
+        <p>Registro de conductores y boleteros.</p>
+      </div>
+
+      <!-- 5. VISTA: CONDUCTORES -->
+      <div id="vista-conductores" class="vista" style="display: none;">
+        <h3>Módulo de Conductores</h3>
+        <p>Registro de personal y asignación de turnos.</p>
+      </div>
+
+      <!-- 6. VISTA: REPORTES -->
+      <div id="vista-reportes" class="vista" style="display: none;">
+        <h3>Módulo de Reportes</h3>
+        <p>Exportación de datos a PDF o Excel.</p>
+      </div>
+
+      <!-- 7. VISTA: ALERTAS -->
+      <div id="vista-alertas" class="vista" style="display: none;">
+        <h3>Módulo de Alertas</h3>
+        <p>Notificaciones del sistema y descuadres de caja.</p>
+      </div>
+
+      <!-- 8. VISTA: CONFIGURACIÓN -->
+      <div id="vista-configuracion" class="vista" style="display: none;">
+        <h3>Configuración del Sistema</h3>
+        <p>Ajustes de cuenta y permisos de usuarios.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Enlace a los archivos separados -->
+   <script src="navegacion.js"></script>
+   <script src="dashboard.js"></script>
+   
+
+</body>
+</html> 
