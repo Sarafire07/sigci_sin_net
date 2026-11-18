@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
         'btn-ventas': { vista: 'vista-ventas', titulo: 'Historial de Ventas' },
         'btn-rutas': { vista: 'vista-rutas', titulo: 'Gestión de Rutas' },
         'btn-buses': { vista: 'vista-buses', titulo: 'Administración de Flota' },
-        'btn-personal': { vista: 'vista-personal', titulo: 'Personal' },
+        'btn-personal': { vista: 'vista-personal', titulo: 'Personal'},
         'btn-reportes': { vista: 'vista-reportes', titulo: 'Reportes y Estadísticas' },
         'btn-alertas': { vista: 'vista-alertas', titulo: 'Centro de Alertas' },
         'btn-configuracion': { vista: 'vista-configuracion', titulo: 'Configuración' }
@@ -131,15 +131,17 @@ function renderizarTablaVentas(datos) {
         const codigoMostrar = venta.codigo_venta ? venta.codigo_venta : '---';
 
         const fila = document.createElement('tr');
-        fila.innerHTML = `
-            <td style="padding: 10px; color: #3182ce; font-family: monospace;"><strong>${codigoMostrar}</strong></td>
-            <td style="padding: 10px;"><strong>${venta.bus}</strong></td>
+       fila.innerHTML = `
+            <td style="padding: 10px; color: #2b6cb0; font-weight: bold;">${venta.codigo_venta}</td>
+            <td style="padding: 10px;"><strong>${venta.nombre_vendedor || 'Sin asignar'}</strong></td>
+            <td style="padding: 10px;"><strong>${venta.patente || venta.bus}</strong></td>
             <td style="padding: 10px;">${venta.ruta}</td>
-            <td style="padding: 10px;">${venta.turno}</td>
+            <td style="padding: 10px;">${venta.tipo_boleto || 'Adulto'}</td>
+            <td style="padding: 10px;">${venta.hora || '--:--'}</td>
             <td style="padding: 10px;">${venta.boletos}</td>
             <td style="padding: 10px;"><strong>$${Number(venta.ingresos).toLocaleString('es-CL')}</strong></td>
             <td style="padding: 10px;">${venta.estado}</td>
-        `;
+`;
         tablaVentas.appendChild(fila);
     });
 
@@ -198,7 +200,7 @@ if (canvasLine) {
         }
       }  
     });
-} // <--- LLAVE CORREGIDA AQUÍ
+}
 
 // =========================================================
 // 4. CARGA Y GUARDADO DE BUSES Y RUTAS
@@ -305,8 +307,78 @@ async function guardarRuta() {
     }
 }
 
-// Ejecutar automáticamente al abrir la página
+// =========================================================
+// 5. GESTIÓN DE PERSONAL Y USUARIOS (Panel Admin)
+// =========================================================
+
+async function cargarUsuarios() {
+    try {
+        const respuesta = await fetch('http://localhost:3000/api/usuarios');
+        const usuarios = await respuesta.json();
+        const tbody = document.getElementById('tabla-usuarios-body');
+        
+        if (!tbody) return;
+        tbody.innerHTML = ''; 
+
+        if (usuarios.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 10px;">No hay usuarios registrados.</td></tr>';
+            return;
+        }
+
+        usuarios.forEach(u => {
+            tbody.innerHTML += `
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #E2E8F0;">${u.id}</td>
+                    <td style="padding: 10px; border: 1px solid #E2E8F0;"><b>${u.nombre}</b></td>
+                    <td style="padding: 10px; border: 1px solid #E2E8F0;">${u.username}</td>
+                    <td style="padding: 10px; border: 1px solid #E2E8F0;"><span style="background: #FEFCBF; color: #744210; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">${u.rol}</span></td>
+                </tr>
+            `;
+        });
+    } catch (error) {
+        console.error("Error al cargar usuarios:", error);
+    }
+}
+
+async function guardarUsuario() {
+    const nombre = document.getElementById('nuevo-nombre')?.value;
+    const username = document.getElementById('nuevo-username')?.value;
+    const password = document.getElementById('nuevo-password')?.value;
+    const rol = document.getElementById('nuevo-rol')?.value || 'Conductor';
+
+    if (!nombre || !username || !password) {
+        alert("⚠️ Por favor completa todos los campos obligatorios.");
+        return;
+    }
+
+    try {
+        const respuesta = await fetch('http://localhost:3000/api/usuarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, username, password, rol })
+        });
+
+        if (respuesta.ok) {
+            alert("✅ Usuario creado con éxito.");
+            document.getElementById('nuevo-nombre').value = '';
+            document.getElementById('nuevo-username').value = '';
+            document.getElementById('nuevo-password').value = '';
+            cargarUsuarios(); // Recarga la tabla de personal
+        } else {
+            const data = await respuesta.json();
+            alert("❌ Error: " + (data.error || "No se pudo registrar el usuario."));
+        }
+    } catch (error) {
+        console.error(error);
+        alert("No se pudo conectar con el servidor.");
+    }
+}
+
+// =========================================================
+// CARGA AUTOMÁTICA AL ABRIR LA PÁGINA
+// =========================================================
 document.addEventListener('DOMContentLoaded', () => {
     cargarBuses();
     cargarRutas();
+    cargarUsuarios(); // <--- Ahora sí carga el personal al iniciar
 });

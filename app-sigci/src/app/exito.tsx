@@ -5,22 +5,38 @@ import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'r
 export default function ExitoScreen() {
   const router = useRouter();
   
-  // 1. ATRAPAMOS LOS DATOS INCLUYENDO EL "codigo" QUE VIENE DE LA VENTA
+  // Recibimos todos los datos reales que envía ventas.tsx, incluyendo bus, ruta y vendedorIdParam
   const params = useLocalSearchParams();
-  const { turno = 'Mañana', tipo = 'Adulto', cantidad = '1', total = '5000', codigo = '---' } = params;
+  const { 
+    turno = 'Mañana', 
+    tipo = 'Adulto', 
+    cantidad = '1', 
+    total = '5000', 
+    codigo = '---',
+    bus = 'Sin asignar',
+    ruta = 'Sin asignar',
+    vendedorIdParam = ''
+  } = params;
 
   const [fechaActual, setFechaActual] = useState('');
 
-  // 2. Solo generamos la fecha de hoy, porque el código ya viene listo
   useEffect(() => {
     const hoy = new Date();
     const opciones: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
     setFechaActual(hoy.toLocaleDateString('es-CL', opciones));
   }, []);
 
+  const handleNuevaVenta = () => {
+    // Volvemos enviando de regreso el ID del vendedor para que jamás se pierda
+    const idMemoria = vendedorIdParam || (globalThis as any).vendedorIdGlobal || '';
+    router.replace({
+      pathname: '/ventas',
+      params: { vendedorIdParam: String(idMemoria) }
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* 1. SECCIÓN DEL GIF ANIMADO DEL TICKET */}
       <View style={styles.gifContainer}>
         <Image 
           source={require('../../assets/images/gift.gif')} 
@@ -28,36 +44,31 @@ export default function ExitoScreen() {
         />
       </View>
 
-      {/* Mensaje de Confirmación */}
       <Text style={styles.mensajeExito}>Boleto registrado correctamente</Text>
 
-      {/* 2. TARJETA DE DETALLE DEL BOLETO */}
       <View style={styles.ticketCard}>
-        
-        {/* Código del Boleto (Ahora muestra el código real) */}
         <Text style={styles.codigoLabel}>CÓDIGO DE BOLETO</Text>
         <Text style={styles.codigoNumero}>{codigo}</Text>
 
         <View style={styles.divisor} />
 
-        {/* Detalles en filas limpias */}
         <View style={styles.filaInfo}>
           <Text style={styles.detalleLabel}>Fecha:</Text>
           <Text style={styles.detalleValor}>{fechaActual}</Text>
         </View>
 
         <View style={styles.filaInfo}>
-          <Text style={styles.detalleLabel}>Bus:</Text>
-          <Text style={styles.detalleValor}>BF-23</Text>
+          <Text style={styles.detalleLabel}>Patente:</Text>
+          <Text style={styles.detalleValor}>{bus}</Text>
         </View>
 
         <View style={styles.filaInfo}>
           <Text style={styles.detalleLabel}>Ruta:</Text>
-          <Text style={styles.detalleValor}>Ovalle - La Serena</Text>
+          <Text style={styles.detalleValor}>{ruta}</Text>
         </View>
 
         <View style={styles.filaInfo}>
-          <Text style={styles.detalleLabel}>Turno:</Text>
+          <Text style={styles.detalleLabel}>Hora:</Text>
           <Text style={styles.detalleValor}>{turno}</Text>
         </View>
 
@@ -68,23 +79,18 @@ export default function ExitoScreen() {
 
         <View style={styles.divisor} />
 
-        {/* Total Destacado */}
         <View style={styles.filaInfo}>
           <Text style={styles.totalLabel}>TOTAL PAGADO:</Text>
           <Text style={styles.totalValor}>${Number(total).toLocaleString('es-CL')}</Text>
         </View>
       </View>
 
-      {/* 3. BOTÓN PARA NUEVA VENTA */}
-      <TouchableOpacity style={styles.botonNuevaVenta} onPress={() => router.replace('/ventas')}>
+      <TouchableOpacity style={styles.botonNuevaVenta} onPress={handleNuevaVenta}>
         <Text style={styles.textoBoton}>NUEVA VENTA</Text>
       </TouchableOpacity>
     </SafeAreaView>
-    
   );
-  
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -107,7 +113,7 @@ const styles = StyleSheet.create({
   mensajeExito: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2E7D32', // Verde éxito
+    color: '#2E7D32',
     textAlign: 'center',
     marginBottom: 25,
   },
@@ -129,14 +135,14 @@ const styles = StyleSheet.create({
   codigoLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8', // Letras grises
+    color: '#94A3B8',
     textAlign: 'center',
     letterSpacing: 1,
   },
   codigoNumero: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#000000', // Letras negras
+    color: '#000000',
     textAlign: 'center',
     marginTop: 4,
     letterSpacing: 2,
@@ -172,7 +178,7 @@ const styles = StyleSheet.create({
   totalValor: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#fd7e00', // Resalta el total en naranja corporativo
+    color: '#fd7e00',
   },
   botonNuevaVenta: {
     backgroundColor: '#fd7e00',

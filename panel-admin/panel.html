@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Panel Administrativo - SIGCI</title>
+  <link rel="icon" type="image/png" href="icon.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,15 +13,16 @@
   <div class="dashboard-container">
     <!-- Menú Lateral -->
     <aside class="sidebar">
-      <div class="logo">
-        <i class="fa-solid fa-bus"></i> BUSES CORTÉS FLORES
+      <div class="logo" style="display: flex; align-items: center; gap: 10px; padding: 15px;">
+        <img src="icon.png" alt="Logo" style="width: 35px; height: 35px; object-fit: contain; border-radius: 50%;">
+        <span style="font-size: 14px; font-weight: bold;">Buses Cortés Flores</span>
       </div>
       <ul class="menu">
         <li id="btn-resumen" class="active"><i class="fa-solid fa-chart-pie"></i> Resumen</li>
         <li id="btn-ventas"><i class="fa-solid fa-ticket"></i> Ventas</li>
         <li id="btn-rutas"><i class="fa-solid fa-route"></i> Rutas</li>
         <li id="btn-buses"><i class="fa-solid fa-van-shuttle"></i> Buses</li>
-        <li id="btn-conductores"><i class="fa-solid fa-users"></i> Personal</li>
+        <li id="btn-personal"><i class="fa-solid fa-users"></i> Personal</li>
         <li id="btn-reportes"><i class="fa-solid fa-file-lines"></i> Reportes</li>
         <li id="btn-alertas"><i class="fa-solid fa-bell"></i> Alertas</li>
         <li id="btn-configuracion"><i class="fa-solid fa-gear"></i> Configuración</li>
@@ -37,7 +39,7 @@
         </div>
       </header>
 
-      <!-- 1. VISTA: RESUMEN (Lo que ya teníamos) -->
+      <!-- 1. VISTA: RESUMEN -->
       <div id="vista-resumen" class="vista">
         <!-- Tarjetas de KPI -->
         <section class="kpi-cards">
@@ -83,35 +85,37 @@
           </div>
         </section>
 
-        <!-- Sección de Tabla (¡Esta era la que faltaba!) -->
+        <!-- Sección de Tabla en Resumen -->
         <section class="table-section">
-          <h4>Ventas por bus (hoy)</h4>
-          <table>
+          <h4>Últimas ventas registradas (hoy)</h4>
+          <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead style="background-color: #2D3748; color: white;">
                 <tr>
-                    <th style="padding: 10px;">Código</th> <!-- CAMBIAMOS ESTO -->
-                    <th style="padding: 10px;">Bus</th>
+                    <th style="padding: 10px;">Código</th>
+                    <th style="padding: 10px;">Vendedor</th>
+                    <th style="padding: 10px;">Patente</th>
                     <th style="padding: 10px;">Ruta</th>
-                    <th style="padding: 10px;">Turno</th>
+                    <th style="padding: 10px;">Tipo</th>
+                    <th style="padding: 10px;">Hora</th>
                     <th style="padding: 10px;">Boletos</th>
                     <th style="padding: 10px;">Ingresos</th>
                     <th style="padding: 10px;">Estado</th>
                 </tr>
             </thead>
             <tbody id="tabla-ventas">
-              <!-- Se llena con JS -->
+              <tr><td colspan="9" style="text-align: center; padding: 10px;">Cargando datos...</td></tr>
             </tbody>
           </table>
         </section>
       </div>
       
-<!-- 2. VISTA: VENTAS -->
+      <!-- 2. VISTA: VENTAS -->
       <div id="vista-ventas" class="vista" style="display: none;">
         <h3>Módulo de Ventas</h3>
         
         <!-- Barra de Filtros -->
-        <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-            <input type="text" id="filtro-bus" placeholder="Buscar Bus (Ej: BF-23)" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+        <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="filtro-bus" placeholder="Buscar Patente o Vendedor..." style="padding: 8px; border-radius: 5px; border: 1px solid #ccc; min-width: 220px;">
             <select id="filtro-ruta" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
                 <option value="">Todas las rutas</option>
                 <option value="La Serena - Ovalle">La Serena - Ovalle</option>
@@ -122,29 +126,31 @@
         <table style="width: 100%; border-collapse: collapse; text-align: left; margin-top: 15px;" border="1">
             <thead style="background-color: #2D3748; color: white;">
                 <tr>
-                    <th style="padding: 10px;">ID</th>
-                    <th style="padding: 10px;">Bus</th>
+                    <th style="padding: 10px;">Código</th>
+                    <th style="padding: 10px;">Vendedor</th>
+                    <th style="padding: 10px;">Patente</th>
                     <th style="padding: 10px;">Ruta</th>
-                    <th style="padding: 10px;">Turno</th>
+                    <th style="padding: 10px;">Tipo</th>
+                    <th style="padding: 10px;">Hora</th>
                     <th style="padding: 10px;">Boletos</th>
                     <th style="padding: 10px;">Ingresos</th>
                     <th style="padding: 10px;">Estado</th>
                 </tr>
             </thead>
             <tbody id="cuerpo-tabla">
-                <tr><td colspan="7" style="text-align: center; padding: 10px;">Cargando datos...</td></tr>
+                <tr><td colspan="9" style="text-align: center; padding: 10px;">Cargando datos...</td></tr>
             </tbody>
             <!-- Fila de Total de la Tabla -->
             <tfoot style="background-color: #E2E8F0; font-weight: bold;">
                 <tr>
-                    <td colspan="5" style="padding: 10px; text-align: right;">TOTAL EN PANTALLA:</td>
+                    <td colspan="7" style="padding: 10px; text-align: right;">TOTAL EN PANTALLA:</td>
                     <td colspan="2" style="padding: 10px;" id="total-tabla-ventas">$0</td>
                 </tr>
             </tfoot>
         </table>
       </div>
 
-     <!-- 3. VISTA: RUTAS -->
+      <!-- 3. VISTA: RUTAS -->
       <div id="vista-rutas" class="vista" style="display: none;">
         <h3>Módulo de Rutas</h3>
         
@@ -177,8 +183,8 @@
         <!-- Formulario -->
         <div style="background: #F8FAFC; padding: 20px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 20px; max-width: 500px;">
             <h4 style="margin-top: 0; color: #4A5568;">Agregar Nuevo Bus</h4>
-            <input type="text" id="nuevo-bus-numero" placeholder="Número (Ej: BF-23)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
-            <input type="text" id="nuevo-bus-patente" placeholder="Patente (Opcional)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <input type="text" id="nuevo-bus-patente" placeholder="Patente del Bus (Ej: ABCD-12)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <input type="text" id="nuevo-bus-numero" placeholder="Número de Máquina (Ej: BF-23)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
             <button onclick="guardarBus()" style="width: 100%; padding: 10px; background: #2D3748; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Guardar Bus</button>
         </div>
 
@@ -187,8 +193,8 @@
             <thead style="background-color: #2D3748; color: white;">
                 <tr>
                     <th style="padding: 10px;">ID</th>
-                    <th style="padding: 10px;">Número</th>
                     <th style="padding: 10px;">Patente</th>
+                    <th style="padding: 10px;">Número Máquina</th>
                     <th style="padding: 10px;">Estado</th>
                 </tr>
             </thead>
@@ -198,16 +204,37 @@
         </table>
       </div>
 
-      <!-- 5. VISTA: PERSONAL -->
+      <!-- 5. VISTA: CONDUCTORES / PERSONAL -->
       <div id="vista-personal" class="vista" style="display: none;">
         <h3>Módulo de Personal</h3>
-        <p>Registro de conductores y boleteros.</p>
-      </div>
+        
+        <!-- Formulario para crear usuario -->
+        <div style="background: #F8FAFC; padding: 20px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 20px; max-width: 500px;">
+            <h4 style="margin-top: 0; color: #4A5568;">Crear Nuevo Usuario / Conductor</h4>
+            <input type="text" id="nuevo-nombre" placeholder="Nombre completo (Ej: Juan Pérez)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <input type="text" id="nuevo-username" placeholder="Usuario o RUT (Ej: chofer1)" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <input type="password" id="nuevo-password" placeholder="Contraseña" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+            <select id="nuevo-rol" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #CBD5E0; border-radius: 5px;">
+                <option value="Conductor">Conductor</option>
+                <option value="Boletero">Boletero</option>
+            </select>
+            <button onclick="guardarUsuario()" style="width: 100%; padding: 10px; background: #fd7e00; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">Guardar Usuario</button>
+        </div>
 
-      <!-- 5. VISTA: CONDUCTORES -->
-      <div id="vista-conductores" class="vista" style="display: none;">
-        <h3>Módulo de Conductores</h3>
-        <p>Registro de personal y asignación de turnos.</p>
+        <!-- Tabla para listar el personal -->
+        <table style="width: 100%; border-collapse: collapse; text-align: left;" border="1">
+            <thead style="background-color: #2D3748; color: white;">
+                <tr>
+                    <th style="padding: 10px;">ID</th>
+                    <th style="padding: 10px;">Nombre</th>
+                    <th style="padding: 10px;">Usuario</th>
+                    <th style="padding: 10px;">Rol</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-usuarios-body">
+                <tr><td colspan="4" style="text-align: center; padding: 10px;">Cargando personal...</td></tr>
+            </tbody>
+        </table>
       </div>
 
       <!-- 6. VISTA: REPORTES -->
@@ -232,9 +259,8 @@
   </div>
 
   <!-- Enlace a los archivos separados -->
-   <script src="navegacion.js"></script>
-   <script src="dashboard.js"></script>
-   
+  <script src="navegacion.js"></script>
+  <script src="dashboard.js"></script>
 
 </body>
-</html> 
+</html>

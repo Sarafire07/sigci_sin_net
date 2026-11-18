@@ -1,41 +1,50 @@
-import { useRouter } from 'expo-router'; // Herramienta para volver al login
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function Registro() {
+const API_URL = 'http://192.168.1.64:3000'; // Usa tu IP actual
 
+export default function Registro() {
   const router = useRouter();
   
-  // Estados para guardar lo que escribe el usuario nuevo
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [rut, setRut] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!nombre || !correo || !rut || !password) {
-      if (Platform.OS === 'web') {
-        alert('Por favor complete todos los campos');
-      } else {
-        Alert.alert('Error', 'Por favor complete todos los campos');
-      }
+      const msg = 'Por favor complete todos los campos';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
       return;
     }
-    
-    // Alerta de éxito de prueba
-    if (Platform.OS === 'web') {
-      alert(`¡Registro exitoso!\nBienvenido a bordo, ${nombre}.`);
-    } else {
-      Alert.alert('Éxito', `¡Registro exitoso! Bienvenido a bordo, ${nombre}.`);
+
+    try {
+      const respuesta = await fetch(`${API_URL}/api/registro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, rut, correo, password })
+      });
+
+      const data = await respuesta.json();
+
+      if (respuesta.ok) {
+        const msg = `¡Registro exitoso! Bienvenido a bordo, ${nombre}.`;
+        Platform.OS === 'web' ? alert(msg) : Alert.alert('Éxito', msg);
+        router.back();
+      } else {
+        const errMsg = data.error || 'No se pudo completar el registro.';
+        Platform.OS === 'web' ? alert(errMsg) : Alert.alert('Error', errMsg);
+      }
+    } catch (error) {
+      console.error(error);
+      const errConexion = 'No se pudo conectar con el servidor.';
+      Platform.OS === 'web' ? alert(errConexion) : Alert.alert('Error', errConexion);
     }
-    
-    // Después de registrarse, lo regresa automáticamente al login
-    router.back();
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Parte superior (Fondo Amarillo Corporativo con Logo) */}
       <View style={styles.topSection}>
         <View style={styles.logoContainer}>
           <Image 
@@ -50,13 +59,11 @@ export default function Registro() {
         </View>
       </View>
 
-      {/* Formulario de registro (Fondo Blanco) */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.bottomSection}
       >
         <View style={styles.card}>
-          {/* Campo Nombre Completo */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Nombre Completo</Text>
             <TextInput
@@ -68,7 +75,6 @@ export default function Registro() {
             />
           </View>
 
-          {/* Campo RUT */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>RUT</Text>
             <TextInput
@@ -80,7 +86,6 @@ export default function Registro() {
             />
           </View>
 
-          {/* Campo Correo */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Correo Electrónico</Text>
             <TextInput
@@ -94,7 +99,6 @@ export default function Registro() {
             />
           </View>
 
-          {/* Campo Contraseña */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Contraseña</Text>
             <TextInput
@@ -107,12 +111,10 @@ export default function Registro() {
             />
           </View>
 
-          {/* Botón de Registrarse */}
           <TouchableOpacity style={styles.boton} onPress={handleRegister}>
             <Text style={styles.textoBoton}>REGISTRARSE</Text>
           </TouchableOpacity>
 
-          {/* Enlace para volver si ya tiene cuenta */}
           <TouchableOpacity style={styles.volverBoton} onPress={() => router.back()}>
             <Text style={styles.textoVolver}>
               ¿Ya tienes cuenta? <Text style={styles.textoVolverEnlace}>Inicia sesión</Text>
@@ -124,7 +126,6 @@ export default function Registro() {
   );
 }
 
-// Estilos consistentes con la portada
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   topSection: {

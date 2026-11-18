@@ -1,6 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = 'http://192.168.1.64:3000';
 
 export default function Index() {
   const router = useRouter();
@@ -8,27 +11,59 @@ export default function Index() {
   const [password, setPassword] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
-    const handleLogin = () => {
+  const handleLogin = async () => {
     if (!usuario || !password) {
-      if (Platform.OS === 'web') {
-        alert('Por favor ingresa tu usuario y contraseña');
-      } else {
-        Alert.alert('Error', 'Por favor ingresa tu usuario y contraseña');
-      }
+      const msg = 'Por favor ingresa tu usuario y contraseña';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
       return;
     }
     
-    // Alerta de bienvenida de prueba antes de pasar a la pantalla
-    if (Platform.OS === 'web') {
-      alert(`¡Bienvenido!\nIniciando sesión como: ${usuario}`);
-    } else {
-      Alert.alert('¡Bienvenido!', `Iniciando sesión como: ${usuario}`);
+    try {
+      const respuesta = await fetch(`${API_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: usuario, password: password })
+      });
+
+      const data = await respuesta.json();
+
+      if (respuesta.ok && data.success) {
+        // Extraemos el id sin importar cómo venga escrito desde MySQL
+        const idUsuario = data.usuario?.id ?? data.usuario?.ID ?? data.usuario?.Id;
+        const idStr = String(idUsuario);
+
+        // 1. Guardamos en memoria global inmediata (nunca se pierde mientras la app esté abierta)
+        (globalThis as any).vendedorIdGlobal = Number(idUsuario);
+
+        // 2. Guardamos en almacenamiento del dispositivo
+        try {
+          if (Platform.OS === 'web') {
+            localStorage.setItem('vendedor_id', idStr);
+          } else {
+            await AsyncStorage.setItem('vendedor_id', idStr);
+          }
+        } catch (e) {
+          console.error("Error guardando en storage:", e);
+        }
+
+        const bienvenidaMsg = `¡Bienvenido, ${data.usuario.nombre}! (ID: ${idStr})`;
+        Platform.OS === 'web' ? alert(bienvenidaMsg) : Alert.alert('¡Bienvenido!', bienvenidaMsg);
+
+        // 3. Pasamos también por parámetro de ruta
+        router.replace({
+          pathname: '/ventas',
+          params: { vendedorIdParam: idStr }
+        });
+      } else {
+        const errorMsg = data.error || 'Usuario o contraseña incorrectos';
+        Platform.OS === 'web' ? alert(errorMsg) : Alert.alert('Acceso Denegado', errorMsg);
+      }
+    } catch (error) {
+      console.error(error);
+      const errConexion = 'No se pudo conectar con el servidor.';
+      Platform.OS === 'web' ? alert(errConexion) : Alert.alert('Error de red', errConexion);
     }
-
-    // Viaja directo a la pantalla de boletos
-    router.replace('/ventas');
   };
-
 
   const handleRegisterRedirect = () => {
     router.push('/registro');
@@ -36,10 +71,7 @@ export default function Index() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Parte superior (Fondo Amarillo Corporativo) */}
       <View style={styles.topSection}>
-        
-        {/* 1. ESPACIO PARA EL LOGO */}
         <View style={styles.logoContainer}>
           <Image 
             source={require('../../assets/images/icon.png')}
@@ -47,23 +79,19 @@ export default function Index() {
           />
         </View>
 
-        {/* Nombre de la empresa grande y centrado */}
         <Text style={styles.empresa}>Buses Cortés Flores</Text>
 
-        {/* Bloque de bienvenida */}
         <View style={styles.welcomeContainer}>
           <Text style={styles.bienvenido}>¡Bienvenido!</Text>
           <Text style={styles.subtit}>Inicia sesión para continuar</Text>
         </View>
       </View>
 
-      {/* Parte inferior con los campos (Fondo Blanco) */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.bottomSection}
       >
         <View style={styles.card}>
-          {/* Campo Usuario */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Usuario</Text>
             <TextInput
@@ -72,10 +100,10 @@ export default function Index() {
               placeholderTextColor="#999"
               value={usuario}
               onChangeText={setUsuario}
+              autoCapitalize="none"
             />
           </View>
 
-          {/* Campo Contraseña */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Contraseña</Text>
             <TextInput
@@ -88,26 +116,22 @@ export default function Index() {
             />
           </View>
 
-          {/* Botón de Iniciar Sesión (Naranja Corporativo) */}
           <TouchableOpacity style={styles.boton} onPress={handleLogin}>
             <Text style={styles.textoBoton}>INICIAR SESIÓN</Text>
           </TouchableOpacity>
 
-          {/* 2. OPCIÓN PARA REGISTRARSE */}
           <TouchableOpacity style={styles.registroBoton} onPress={handleRegisterRedirect}>
             <Text style={styles.textoRegistro}>
               ¿No tienes cuenta? <Text style={styles.textoRegistroEnlace}>Regístrate aquí</Text>
             </Text>
           </TouchableOpacity>
 
-          {/* Enlace inferior de ayuda que abre la ventana emergente */}
           <TouchableOpacity style={styles.ayudaContainer} onPress={() => setModalVisible(true)}>
             <Text style={styles.textoAyuda}>¿Problemas de autenticación?</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
-      {/* PANTALLA EMERGENTE (MODAL) DE SOPORTE TÉCNICO */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -133,10 +157,7 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   topSection: {
     flex: 0.50,
     backgroundColor: '#f8dd74',
@@ -144,15 +165,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 20,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  logo: {
-    width: 250,
-    height: 250,
-    resizeMode: 'contain',
-  },
+  logoContainer: { alignItems: 'center', marginBottom: 5 },
+  logo: { width: 250, height: 250, resizeMode: 'contain' },
   empresa: {
     fontSize: 24,
     fontWeight: '800',
@@ -162,19 +176,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 25,
   },
-  welcomeContainer: {
-    alignItems: 'flex-start',
-  },
-  bienvenido: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2D3748',
-    marginBottom: 2,
-  },
-  subtit: {
-    fontSize: 14,
-    color: '#4A5568',
-  },
+  welcomeContainer: { alignItems: 'flex-start' },
+  bienvenido: { fontSize: 22, fontWeight: 'bold', color: '#2D3748', marginBottom: 2 },
+  subtit: { fontSize: 14, color: '#4A5568' },
   bottomSection: {
     flex: 0.50,
     backgroundColor: '#FFFFFF',
@@ -182,18 +186,9 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     justifyContent: 'flex-start',
   },
-  card: {
-    width: '100%',
-  },
-  inputContainer: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 4,
-  },
+  card: { width: '100%' },
+  inputContainer: { marginBottom: 14 },
+  label: { fontSize: 13, fontWeight: '600', color: '#333333', marginBottom: 4 },
   input: {
     height: 46,
     borderWidth: 1,
@@ -212,33 +207,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  textoBoton: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  registroBoton: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  textoRegistro: {
-    fontSize: 13,
-    color: '#4A5568',
-  },
-  textoRegistroEnlace: {
-    color: '#fd7e00',
-    fontWeight: 'bold',
-  },
-  ayudaContainer: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  textoAyuda: {
-    color: '#D32F2F',
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  textoBoton: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold', letterSpacing: 0.5 },
+  registroBoton: { marginTop: 16, alignItems: 'center' },
+  textoRegistro: { fontSize: 13, color: '#4A5568' },
+  textoRegistroEnlace: { color: '#fd7e00', fontWeight: 'bold' },
+  ayudaContainer: { marginTop: 20, alignItems: 'center' },
+  textoAyuda: { color: '#D32F2F', fontSize: 12, fontWeight: '500' },
   modalFondo: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)', 
@@ -253,32 +227,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
     elevation: 5,
   },
-  modalTitulo: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2D3748',
-    marginBottom: 12,
-  },
-  modalTexto: {
-    fontSize: 14,
-    color: '#4A5568',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 14,
-  },
-  modalCorreo: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fd7e00', 
-    textAlign: 'center',
-    marginBottom: 20,
-  },
+  modalTitulo: { fontSize: 18, fontWeight: 'bold', color: '#2D3748', marginBottom: 12 },
+  modalTexto: { fontSize: 14, color: '#4A5568', textAlign: 'center', lineHeight: 20, marginBottom: 14 },
+  modalCorreo: { fontSize: 14, fontWeight: 'bold', color: '#fd7e00', textAlign: 'center', marginBottom: 20 },
   modalBotonCerrar: {
     backgroundColor: '#2D3748', 
     paddingVertical: 10,
@@ -287,9 +240,5 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
-  modalTextoBoton: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  modalTextoBoton: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' },
 });
