@@ -28,14 +28,11 @@ export default function Index() {
       const data = await respuesta.json();
 
       if (respuesta.ok && data.success) {
-        // Extraemos el id sin importar cómo venga escrito desde MySQL
         const idUsuario = data.usuario?.id ?? data.usuario?.ID ?? data.usuario?.Id;
         const idStr = String(idUsuario);
 
-        // 1. Guardamos en memoria global inmediata (nunca se pierde mientras la app esté abierta)
         (globalThis as any).vendedorIdGlobal = Number(idUsuario);
 
-        // 2. Guardamos en almacenamiento del dispositivo
         try {
           if (Platform.OS === 'web') {
             localStorage.setItem('vendedor_id', idStr);
@@ -46,10 +43,9 @@ export default function Index() {
           console.error("Error guardando en storage:", e);
         }
 
-        const bienvenidaMsg = `¡Bienvenido, ${data.usuario.nombre}! (ID: ${idStr})`;
+        const bienvenidaMsg = `¡Bienvenido, ${data.usuario.nombre}!`;
         Platform.OS === 'web' ? alert(bienvenidaMsg) : Alert.alert('¡Bienvenido!', bienvenidaMsg);
 
-        // 3. Pasamos también por parámetro de ruta
         router.replace({
           pathname: '/ventas',
           params: { vendedorIdParam: idStr }
@@ -63,10 +59,6 @@ export default function Index() {
       const errConexion = 'No se pudo conectar con el servidor.';
       Platform.OS === 'web' ? alert(errConexion) : Alert.alert('Error de red', errConexion);
     }
-  };
-
-  const handleRegisterRedirect = () => {
-    router.push('/registro');
   };
 
   return (
@@ -118,12 +110,6 @@ export default function Index() {
 
           <TouchableOpacity style={styles.boton} onPress={handleLogin}>
             <Text style={styles.textoBoton}>INICIAR SESIÓN</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.registroBoton} onPress={handleRegisterRedirect}>
-            <Text style={styles.textoRegistro}>
-              ¿No tienes cuenta? <Text style={styles.textoRegistroEnlace}>Regístrate aquí</Text>
-            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.ayudaContainer} onPress={() => setModalVisible(true)}>
@@ -208,9 +194,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   textoBoton: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold', letterSpacing: 0.5 },
-  registroBoton: { marginTop: 16, alignItems: 'center' },
-  textoRegistro: { fontSize: 13, color: '#4A5568' },
-  textoRegistroEnlace: { color: '#fd7e00', fontWeight: 'bold' },
   ayudaContainer: { marginTop: 20, alignItems: 'center' },
   textoAyuda: { color: '#D32F2F', fontSize: 12, fontWeight: '500' },
   modalFondo: {

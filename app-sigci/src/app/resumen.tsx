@@ -1,83 +1,287 @@
-import { useRouter } from 'expo-router';
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+const API_URL = 'http://192.168.1.64:3000/api/ventas';
+const KEY_ULTIMO_CIERRE = 'ultimo_id_cierre_turno';
+
+interface Venta {
+  id: number;
+  codigo_venta: string;
+  nombre_vendedor: string;
+  patente: string | null;
+  bus: string;
+  ruta: string;
+  tipo_boleto: string;
+  boletos: number;
+  ingresos: number;
+  hora: string;
+  fecha_completa: string;
+  estado: string;
+}
 
 export default function ResumenScreen() {
   const router = useRouter();
 
-  // Datos fijos del turno comercial para Buses Cortés Flores
-  const totalVentas = 10000;
-  const boletosVendidos = 3;
+  const [ventasHoy, setVentasHoy] = useState<Venta[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [modalHistorial, setModalHistorial] = useState(false);
 
-  const handleSincronizar = () => {
-    alert('Sincronizando datos con la central de Buses Cortés Flores...');
+  const leerUltimoIdCierre = async (): Promise<number> => {
+    try {
+      const guardado =
+        Platform.OS === 'web'
+          ? localStorage.getItem(KEY_ULTIMO_CIERRE)
+          : await AsyncStorage.getItem(KEY_ULTIMO_CIERRE);
+      return guardado ? Number(guardado) : 0;
+    } catch {
+      return 0;
+    }
   };
 
-  const handleHistorial = () => {
-    alert('Abriendo desglose completo del historial de boletos emitidos.');
+  const guardarUltimoIdCierre = async (ultimoId: number) => {
+    try {
+      const valor = String(ultimoId);
+      if (Platform.OS === 'web') {
+        localStorage.setItem(KEY_ULTIMO_CIERRE, valor);
+      } else {
+        await AsyncStorage.setItem(KEY_ULTIMO_CIERRE, valor);
+      }
+    } catch (e) {
+      console.error('Error guardando cierre de turno:', e);
+    }
+  };
+
+  const cargarResumen = async (mostrarAlerta = false) => {
+    try {
+      setCargando(true);
+      const [respuesta, ultimoIdCierre] = await Promise.all([
+        fetch(API_URL),
+        leerUltimoIdCierre(),
+      ]);
+
+      if (!respuesta.ok) throw new Error('Error al conectar con el servidor');
+      const data: Venta[] = await respuesta.json();
+
+      // Filtra solo las ventas de hoy posteriores al último cierre de turno
+      const ahora = new Date();
+      const dd = String(ahora.getDate()).padStart(2, '0');
+      const mm = String(ahora.getMonth() + 1).padStart(2, '0');
+      const yyyy = ahora.getFullYear();
+      const prefijoHoy = `${dd}-${mm}-${yyyy}`;
+
+      const soloTurnoActual = data.filter(
+        (v) =>
+          v.fecha_completa &&
+          v.fecha_completa.startsWith(prefijoHoy) &&
+          Number(v.id) > ultimoIdCierre
+      );
+
+      setVentasHoy(soloTurnoActual);
+
+      if (mostrarAlerta) {
+        Alert.alert('Sincronizado', `Datos actualizados (${soloTurnoActual.length} registros en este turno).`);
+      }
+    } catch (error) {
+      console.error('Error cargando resumen:', error);
+      Alert.alert('Error de conexión', 'No se pudo obtener el resumen desde el servidor.');
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarResumen(false);
+    }, [])
+  );
+
+  const totalVentas = ventasHoy.reduce((acc, v) => acc + Number(v.ingresos || 0), 0);
+  const boletosVendidos = ventasHoy.reduce((acc, v) => acc + Number(v.boletos || 0), 0);
+
+  const calcularPorTipo = (filtro: (tipo: string) => boolean) => {
+    return ventasHoy.reduce(
+      (acc, v) => {
+        const tipo = (v.tipo_boleto || '').toLowerCase();
+        if (filtro(tipo)) {
+          acc.cantidad += Number(v.boletos || 0);
+          acc.monto += Number(v.ingresos || 0);
+        }
+        return acc;
+      },
+      { cantidad: 0, monto: 0 }
+    );
+  };
+
+  const adulto = calcularPorTipo((t) => t.includes('adulto') && !t.includes('mayor'));
+  const estudiante = calcularPorTipo((t) => t.includes('estudiante'));
+  const terceraEdad = calcularPorTipo((t) => t.includes('tercera') || t.includes('mayor'));
+
+  // Muestra solo la patente del bus activo
+  const ultimaVenta = ventasHoy[0];
+  const subtituloActivo = ultimaVenta
+    ? `Patente: ${ultimaVenta.patente || ultimaVenta.bus}`
+    : 'Sin ventas en este turno';
+
+  const cerrarTurno = async () => {
+    if (ventasHoy.length > 0) {
+      const maxId = Math.max(...ventasHoy.map((v) => Number(v.id)));
+      await guardarUltimoIdCierre(maxId);
+    }
+    setVentasHoy([]);
+    router.replace('/');
   };
 
   const handleFinalizarDia = () => {
-    alert('Día finalizado. Caja cerrada con éxito.');
-    router.replace('/'); // Lo regresa al login inicial
+    const mensaje = `Se cerrará tu turno con $${totalVentas.toLocaleString('es-CL')} recaudados (${boletosVendidos} pasajes) y el contador volverá a $0. ¿Deseas continuar?`;
+
+    if (Platform.OS === 'web') {
+      if (confirm(mensaje)) cerrarTurno();
+      return;
+    }
+
+    Alert.alert('Finalizar Turno', mensaje, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Cerrar Caja',
+        style: 'destructive',
+        onPress: cerrarTurno,
+      },
+    ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Encabezado de la página */}
       <View style={styles.header}>
-        <Text style={styles.titulo}>Resumen del Día</Text>
-        <Text style={styles.subtitulo}>Bus BF-23 • Ovalle - La Serena</Text>
+        <Text style={styles.titulo}>Resumen del Turno</Text>
+        <Text style={styles.subtitulo}>{subtituloActivo}</Text>
       </View>
 
       <View style={styles.cardContable}>
-        {/* Total recaudado */}
-        <Text style={styles.labelPrincipal}>TOTAL VENTAS</Text>
-        <Text style={styles.valorPrincipal}>${totalVentas.toLocaleString('es-CL')}</Text>
+        {cargando ? (
+          <View style={styles.loaderBox}>
+            <ActivityIndicator size="large" color="#fd7e00" />
+            <Text style={styles.loaderText}>Actualizando caja...</Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.labelPrincipal}>TOTAL VENTAS</Text>
+            <Text style={styles.valorPrincipal}>${totalVentas.toLocaleString('es-CL')}</Text>
 
-        {/* Cantidad de pasajes */}
-        <Text style={styles.labelSecundario}>Cantidad de boletos vendidos</Text>
-        <Text style={styles.valorSecundario}>{boletosVendidos} pasajes</Text>
+            <Text style={styles.labelSecundario}>Cantidad de boletos vendidos</Text>
+            <Text style={styles.valorSecundario}>{boletosVendidos} pasajes</Text>
 
-        <View style={styles.divisor} />
+            <View style={styles.divisor} />
 
-        {/* Detalle por Tipo */}
-        <Text style={styles.labelSeccion}>Detalle por Tipo:</Text>
-        
-        <View style={styles.filaDetalle}>
-          <Text style={styles.tipoTexto}>Adulto:</Text>
-          <Text style={styles.valoresTexto}>2 vendidos • $8.000</Text>
-        </View>
+            <Text style={styles.labelSeccion}>Detalle por Tipo:</Text>
 
-        <View style={styles.filaDetalle}>
-          <Text style={styles.tipoTexto}>Estudiante:</Text>
-          <Text style={styles.valoresTexto}>1 vendido • $2.000</Text>
-        </View>
+            <View style={styles.filaDetalle}>
+              <Text style={styles.tipoTexto}>Adulto:</Text>
+              <Text style={styles.valoresTexto}>
+                {adulto.cantidad} vendidos • ${adulto.monto.toLocaleString('es-CL')}
+              </Text>
+            </View>
 
-        <View style={styles.filaDetalle}>
-          <Text style={styles.tipoTexto}>Tercera Edad:</Text>
-          <Text style={styles.valoresTexto}>0 vendidos • $0</Text>
-        </View>
+            <View style={styles.filaDetalle}>
+              <Text style={styles.tipoTexto}>Estudiante:</Text>
+              <Text style={styles.valoresTexto}>
+                {estudiante.cantidad} vendidos • ${estudiante.monto.toLocaleString('es-CL')}
+              </Text>
+            </View>
+
+            <View style={styles.filaDetalle}>
+              <Text style={styles.tipoTexto}>Tercera Edad:</Text>
+              <Text style={styles.valoresTexto}>
+                {terceraEdad.cantidad} vendidos • ${terceraEdad.monto.toLocaleString('es-CL')}
+              </Text>
+            </View>
+          </>
+        )}
       </View>
 
-      {/* Bloque de los 3 Botones Solicitados */}
       <View style={styles.bloqueBotones}>
-        <TouchableOpacity style={styles.botonSincronizar} onPress={handleSincronizar}>
-          <Text style={styles.textoBoton}>🔄 SINCRONIZAR</Text>
+        <TouchableOpacity
+          style={styles.botonSincronizar}
+          onPress={() => cargarResumen(true)}
+          disabled={cargando}
+        >
+          <Text style={styles.textoBoton}>
+            {cargando ? 'SINCRONIZANDO...' : '🔄 SINCRONIZAR'}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.botonHistorial} onPress={handleHistorial}>
-          <Text style={styles.textoBoton}>📋 HISTORIAL</Text>
+        <TouchableOpacity
+          style={styles.botonHistorial}
+          onPress={() => setModalHistorial(true)}
+        >
+          <Text style={styles.textoBoton}>📋 HISTORIAL ({ventasHoy.length})</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.botonFinalizar} onPress={handleFinalizarDia}>
-          <Text style={styles.textoBoton}>🛑 FINALIZAR DÍA</Text>
+          <Text style={styles.textoBoton}>🛑 FINALIZAR TURNO</Text>
         </TouchableOpacity>
 
-        {/* Botón para regresar al panel de ventas */}
         <TouchableOpacity style={styles.botonVolver} onPress={() => router.back()}>
           <Text style={styles.textoVolver}>Volver al Panel de Ventas</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={modalHistorial}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalHistorial(false)}
+      >
+        <View style={styles.modalFondo}>
+          <View style={styles.modalContenido}>
+            <Text style={styles.modalTitulo}>Historial del Turno</Text>
+
+            {ventasHoy.length === 0 ? (
+              <Text style={styles.vacioTexto}>Aún no hay ventas en este turno.</Text>
+            ) : (
+              <FlatList
+                data={ventasHoy}
+                keyExtractor={(item) => String(item.id)}
+                style={styles.listaHistorial}
+                renderItem={({ item }) => (
+                  <View style={styles.itemHistorial}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.itemTipo}>
+                        {item.tipo_boleto} (x{item.boletos})
+                      </Text>
+                      <Text style={styles.itemMeta}>
+                        {item.hora} • {item.ruta} • {item.codigo_venta}
+                      </Text>
+                    </View>
+                    <Text style={styles.itemMonto}>
+                      ${Number(item.ingresos).toLocaleString('es-CL')}
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.botonCerrarModal}
+              onPress={() => setModalHistorial(false)}
+            >
+              <Text style={styles.textoBoton}>CERRAR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -103,6 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#718096',
     marginTop: 4,
+    textAlign: 'center',
   },
   cardContable: {
     backgroundColor: '#F8FAFC',
@@ -114,6 +319,17 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     marginBottom: 25,
     alignItems: 'center',
+    minHeight: 220,
+    justifyContent: 'center',
+  },
+  loaderBox: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  loaderText: {
+    marginTop: 10,
+    color: '#718096',
+    fontSize: 13,
   },
   labelPrincipal: {
     fontSize: 11,
@@ -143,8 +359,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E2E8F0',
     marginVertical: 14,
-    borderStyle: 'dashed',
-    borderRadius: 1,
   },
   labelSeccion: {
     fontSize: 14,
@@ -211,5 +425,66 @@ const styles = StyleSheet.create({
     color: '#718096',
     fontSize: 13,
     textDecorationLine: 'underline',
+  },
+  modalFondo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContenido: {
+    backgroundColor: '#FFFFFF',
+    width: '100%',
+    maxWidth: 360,
+    maxHeight: '75%',
+    borderRadius: 16,
+    padding: 20,
+  },
+  modalTitulo: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2D3748',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  listaHistorial: {
+    marginBottom: 15,
+  },
+  vacioTexto: {
+    textAlign: 'center',
+    color: '#718096',
+    marginVertical: 25,
+  },
+  itemHistorial: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDF2F7',
+  },
+  itemTipo: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2D3748',
+  },
+  itemMeta: {
+    fontSize: 12,
+    color: '#718096',
+    marginTop: 2,
+  },
+  itemMonto: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#fd7e00',
+    marginLeft: 10,
+  },
+  botonCerrarModal: {
+    backgroundColor: '#2D3748',
+    height: 42,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -39,6 +39,43 @@ export default function VentasScreen() {
     'Tercera Edad': 2500,
   };
 
+  // Funciones para guardar y leer la última selección
+  const guardarSeleccion = async (clave: string, valor: string) => {
+    (globalThis as any)[clave] = valor;
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(clave, valor);
+      } else {
+        await AsyncStorage.setItem(clave, valor);
+      }
+    } catch (e) {
+      console.error('Error guardando selección:', e);
+    }
+  };
+
+  const leerSeleccion = async (clave: string): Promise<string | null> => {
+    if ((globalThis as any)[clave]) return String((globalThis as any)[clave]);
+    try {
+      return Platform.OS === 'web'
+        ? localStorage.getItem(clave)
+        : await AsyncStorage.getItem(clave);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const seleccionarBus = (id: string) => {
+    setBusIdSeleccionado(id);
+    guardarSeleccion('ultimo_bus_id', id);
+    setModalBusVisible(false);
+  };
+
+  const seleccionarRuta = (id: string) => {
+    setRutaIdSeleccionada(id);
+    guardarSeleccion('ultima_ruta_id', id);
+    setModalRutaVisible(false);
+  };
+
   useEffect(() => {
     async function obtenerVendedor() {
       // 1. Revisar si viene por parámetro de navegación
@@ -75,25 +112,39 @@ export default function VentasScreen() {
   }, [vendedorIdParam]);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/buses`)
-      .then(res => res.json())
-      .then(datos => {
-        if (Array.isArray(datos)) {
-          setListaBuses(datos);
-          if (datos.length > 0) setBusIdSeleccionado(String(datos[0].id));
+    async function cargarBusesYRutas() {
+      try {
+        const resBuses = await fetch(`${API_URL}/api/buses`);
+        const datosBuses = await resBuses.json();
+        if (Array.isArray(datosBuses)) {
+          setListaBuses(datosBuses);
+          if (datosBuses.length > 0) {
+            const busGuardado = await leerSeleccion('ultimo_bus_id');
+            const existeBus = datosBuses.some(b => String(b.id) === String(busGuardado));
+            setBusIdSeleccionado(existeBus && busGuardado ? String(busGuardado) : String(datosBuses[0].id));
+          }
         }
-      })
-      .catch(error => console.error("Error buses:", error));
+      } catch (error) {
+        console.error("Error buses:", error);
+      }
 
-    fetch(`${API_URL}/api/rutas`)
-      .then(res => res.json())
-      .then(datos => {
-        if (Array.isArray(datos)) {
-          setListaRutas(datos);
-          if (datos.length > 0) setRutaIdSeleccionada(String(datos[0].id));
+      try {
+        const resRutas = await fetch(`${API_URL}/api/rutas`);
+        const datosRutas = await resRutas.json();
+        if (Array.isArray(datosRutas)) {
+          setListaRutas(datosRutas);
+          if (datosRutas.length > 0) {
+            const rutaGuardada = await leerSeleccion('ultima_ruta_id');
+            const existeRuta = datosRutas.some(r => String(r.id) === String(rutaGuardada));
+            setRutaIdSeleccionada(existeRuta && rutaGuardada ? String(rutaGuardada) : String(datosRutas[0].id));
+          }
         }
-      })
-      .catch(error => console.error("Error rutas:", error));
+      } catch (error) {
+        console.error("Error rutas:", error);
+      }
+    }
+
+    cargarBusesYRutas();
   }, []);
 
   useEffect(() => {
@@ -295,12 +346,10 @@ export default function VentasScreen() {
                       styles.modalOpcion,
                       String(item.id) === busIdSeleccionado && styles.modalOpcionActiva
                     ]}
-                    onPress={() => {
-                      setBusIdSeleccionado(String(item.id));
-                      setModalBusVisible(false);
-                    }}
+                    onPress={() => seleccionarBus(String(item.id))}
                   >
-                    <Text style={styles.modalOpcionTexto}>🚌 Patente: {item.patente || item.numero_bus}</Text>                  </TouchableOpacity>
+                    <Text style={styles.modalOpcionTexto}>🚌 Patente: {item.patente || item.numero_bus}</Text>
+                  </TouchableOpacity>
                 )}
               />
             )}
@@ -324,10 +373,7 @@ export default function VentasScreen() {
                     styles.modalOpcion,
                     String(item.id) === rutaIdSeleccionada && styles.modalOpcionActiva
                   ]}
-                  onPress={() => {
-                    setRutaIdSeleccionada(String(item.id));
-                    setModalRutaVisible(false);
-                  }}
+                  onPress={() => seleccionarRuta(String(item.id))}
                 >
                   <Text style={styles.modalOpcionTexto}>📍 {item.nombre_ruta}</Text>
                 </TouchableOpacity>
