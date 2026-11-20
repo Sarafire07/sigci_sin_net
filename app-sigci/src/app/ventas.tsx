@@ -80,19 +80,17 @@ export default function VentasScreen() {
     async function obtenerVendedor() {
       // 1. Revisar si viene por parámetro de navegación
       if (vendedorIdParam) {
-        const num = Number(vendedorIdParam);
-        if (!isNaN(num) && num > 0) {
-          setVendedorId(num);
-          (globalThis as any).vendedorIdGlobal = num;
-          return;
-        }
-      }
+         const idStr = String(vendedorIdParam);
+        setVendedorId(idStr);
+        (globalThis as any).vendedorIdGlobal = idStr;
+      return;
+      } 
 
       // 2. Revisar si está en la memoria global de la app
       if ((globalThis as any).vendedorIdGlobal) {
-        setVendedorId(Number((globalThis as any).vendedorIdGlobal));
+        setVendedorId(String((globalThis as any).vendedorIdGlobal));
         return;
-      }
+     }
 
       // 3. Revisar en almacenamiento local
       try {
@@ -100,9 +98,8 @@ export default function VentasScreen() {
           ? localStorage.getItem('vendedor_id')
           : await AsyncStorage.getItem('vendedor_id');
         if (guardado) {
-          const num = Number(guardado);
-          setVendedorId(num);
-          (globalThis as any).vendedorIdGlobal = num;
+          setVendedorId(String(guardado));
+          (globalThis as any).vendedorIdGlobal = String(guardado);
         }
       } catch (e) {
         console.error("Error leyendo storage:", e);
@@ -176,14 +173,14 @@ export default function VentasScreen() {
     }
 
     // Buscamos el ID por las 3 vías posibles antes de armar la venta
-    let idFinal: number | null = vendedorId || (globalThis as any).vendedorIdGlobal || (vendedorIdParam ? Number(vendedorIdParam) : null);
-
+    let idFinal: string | null = vendedorId || (globalThis as any).vendedorIdGlobal || (vendedorIdParam ? String(vendedorIdParam) : null);
     if (!idFinal) {
       try {
         const guardado = Platform.OS === 'web'
+         
           ? localStorage.getItem('vendedor_id')
           : await AsyncStorage.getItem('vendedor_id');
-        if (guardado) idFinal = Number(guardado);
+         if (guardado) idFinal = String(guardado);
       } catch (e) {}
     }
 
@@ -199,8 +196,8 @@ export default function VentasScreen() {
     const ventaData = {
       codigo_venta: codigoGenerado,
       vendedor_id: idFinal,
-      bus_id: Number(busIdSeleccionado),
-      ruta_id: Number(rutaIdSeleccionada),
+      bus_id: String(busIdSeleccionado),
+      ruta_id: String(rutaIdSeleccionada),
       tipo_boleto: tipoBolet,
       boletos: cantidad,
       ingresos: total,

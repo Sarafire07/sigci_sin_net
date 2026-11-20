@@ -31,7 +31,7 @@ export default function Index() {
         const idUsuario = data.usuario?.id ?? data.usuario?.ID ?? data.usuario?.Id;
         const idStr = String(idUsuario);
 
-        (globalThis as any).vendedorIdGlobal = Number(idUsuario);
+        (globalThis as any).vendedorIdGlobal = idStr;
 
         try {
           if (Platform.OS === 'web') {

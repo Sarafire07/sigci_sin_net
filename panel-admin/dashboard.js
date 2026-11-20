@@ -313,7 +313,7 @@ async function guardarRuta() {
 
 async function cargarUsuarios() {
     try {
-        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/usuarios');
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/usuario');
         const usuarios = await respuesta.json();
         const tbody = document.getElementById('tabla-usuarios-body');
         
@@ -352,7 +352,7 @@ async function guardarUsuario() {
     }
 
     try {
-        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/usuarios', {
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/usuario', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre, username, password, rol })

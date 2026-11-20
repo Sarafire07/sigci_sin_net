@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 
-const API_URL = 'https://sigci-sin-net.onrender.com';
+const API_URL = 'https://sigci-sin-net.onrender.com/api/ventas';
 const KEY_ULTIMO_CIERRE = 'ultimo_id_cierre_turno';
 
 interface Venta {
@@ -83,11 +83,9 @@ export default function ResumenScreen() {
       const prefijoHoy = `${dd}-${mm}-${yyyy}`;
 
       const soloTurnoActual = data.filter(
-        (v) =>
-          v.fecha_completa &&
-          v.fecha_completa.startsWith(prefijoHoy) &&
-          Number(v.id) > ultimoIdCierre
+        (v) => v.fecha_completa && v.fecha_completa.startsWith(prefijoHoy)
       );
+
 
       setVentasHoy(soloTurnoActual);
 
