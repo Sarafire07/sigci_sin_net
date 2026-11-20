@@ -158,7 +158,7 @@ app.post('/api/ventas', async (req, res) => {
 // 4. ENDPOINTS DE USUARIOS
 // ==========================================
 
-app.get('/api/usuarios', async (req, res) => {
+app.get('/api/usuario', async (req, res) => {
     try {
         const snapshot = await db.collection('usuario').get();
         const results = snapshot.docs.map(doc => {
@@ -196,7 +196,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.post('/api/usuarios', async (req, res) => {
+app.post('/api/usuario', async (req, res) => {
     try {
         const { nombre, username, password, rol } = req.body;
         const existe = await db.collection('usuario').where('username', '==', username).get();
