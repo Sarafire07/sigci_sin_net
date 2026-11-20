@@ -42,7 +42,7 @@ let graficoRutasInstance = null;
 
 async function cargarDatosVentas() {
     try {
-        const respuesta = await fetch('http://localhost:3000/api/ventas');
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/ventas');
         todasLasVentas = await respuesta.json();
         
         actualizarPanelPrincipal(todasLasVentas);
@@ -208,7 +208,7 @@ if (canvasLine) {
 
 async function cargarBuses() {
     try {
-        const respuesta = await fetch('http://localhost:3000/api/buses');
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/buses');
         const buses = await respuesta.json();
         const tbody = document.getElementById('tabla-buses-body');
         if(tbody) tbody.innerHTML = ''; 
@@ -230,7 +230,7 @@ async function cargarBuses() {
 
 async function cargarRutas() {
     try {
-        const respuesta = await fetch('http://localhost:3000/api/rutas');
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/rutas');
         const rutas = await respuesta.json();
         const tbody = document.getElementById('tabla-rutas-body');
         if(tbody) tbody.innerHTML = ''; 
@@ -259,7 +259,7 @@ async function guardarBus() {
     }
 
     try {
-        const respuesta = await fetch('http://localhost:3000/api/buses', {
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/buses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ numero_bus: numero, patente: patente, estado: 'Activo' })
@@ -288,7 +288,7 @@ async function guardarRuta() {
     }
 
     try {
-        const respuesta = await fetch('http://localhost:3000/api/rutas', {
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/rutas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre_ruta: nombre, estado: 'Activo' })
@@ -313,7 +313,7 @@ async function guardarRuta() {
 
 async function cargarUsuarios() {
     try {
-        const respuesta = await fetch('http://localhost:3000/api/usuarios');
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/usuarios');
         const usuarios = await respuesta.json();
         const tbody = document.getElementById('tabla-usuarios-body');
         
@@ -352,7 +352,7 @@ async function guardarUsuario() {
     }
 
     try {
-        const respuesta = await fetch('http://localhost:3000/api/usuarios', {
+        const respuesta = await fetch('https://sigci-sin-net.onrender.com/api/usuarios', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nombre, username, password, rol })

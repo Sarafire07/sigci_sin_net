@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 
-const API_URL = 'http://192.168.1.64:3000/api/ventas';
+const API_URL = 'https://sigci-sin-net.onrender.com';
 const KEY_ULTIMO_CIERRE = 'ultimo_id_cierre_turno';
 
 interface Venta {

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.1.64:3000';
+const API_URL = 'https://sigci-sin-net.onrender.com';
 
 export default function VentasScreen() {
   const router = useRouter();

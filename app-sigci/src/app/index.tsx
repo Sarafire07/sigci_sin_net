@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.1.64:3000';
+const API_URL = 'https://sigci-sin-net.onrender.com';
 
 export default function Index() {
   const router = useRouter();
